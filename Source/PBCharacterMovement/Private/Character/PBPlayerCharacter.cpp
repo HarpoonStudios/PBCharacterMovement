@@ -51,6 +51,55 @@ APBPlayerCharacter::APBPlayerCharacter(const FObjectInitializer& ObjectInitializ
 	MovementPtr = Cast<UPBPlayerMovement>(ACharacter::GetMovementComponent());
 
 	CapDamageMomentumZ = 476.25f;
+	CapDamageMomentumZ = 476.25f;
+
+	// Initialize the custom camera component
+	CustomCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("CustomCameraComponent"));
+	CustomCameraComponent->SetupAttachment(GetRootComponent());
+	CustomCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, BaseEyeHeight));
+	CustomCameraComponent->bUsePawnControlRotation = true; // Use the pawn control rotation for the camera component
+	MinFOV = 90.0f;
+	MaxFOV = 110.0f;
+	InterpolationSpeed = 5.0f;
+	speedThreshold = 400.0f;
+	speedResponsiveness = 5.0f;
+
+	// Initialize the third-person mesh component
+	Mesh3P = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Mesh3P"));
+	Mesh3P->SetupAttachment(RootComponent);
+	Mesh3P->SetOwnerNoSee(false);
+	Mesh3P->bOnlyOwnerSee = false;
+	Mesh3P->bReceivesDecals = false;
+	Mesh3P->CastShadow = true;
+	Mesh3P->SetCollisionProfileName(TEXT("NoCollision"));
+}
+
+void APBPlayerCharacter::UpdateCameraFOV(float DeltaTime)
+{
+	if (!CustomCameraComponent)
+	{
+		return;
+	}
+
+	static float BufferedSpeed = 0.0f;
+	float CurrentSpeed = GetVelocity().Size();
+
+	BufferedSpeed = FMath::FInterpTo(BufferedSpeed, CurrentSpeed, DeltaTime, speedResponsiveness);
+
+	float MaxSpeed = GetCharacterMovement()->MaxWalkSpeed;
+	
+	if (BufferedSpeed > speedThreshold)
+	{
+		float TargetFOV = FMath::Lerp(MinFOV, MaxFOV, (BufferedSpeed - speedThreshold) / (MaxSpeed - speedThreshold));
+		TargetFOV = FMath::Clamp(TargetFOV, MinFOV, MaxFOV); // Clamp the target FOV to the acceptable range
+		float SmoothedFOV = FMath::FInterpTo(CustomCameraComponent->FieldOfView, TargetFOV, DeltaTime, InterpolationSpeed);
+		CustomCameraComponent->SetFieldOfView(SmoothedFOV);
+	}
+	else
+	{
+		float SmoothedFOV = FMath::FInterpTo(CustomCameraComponent->FieldOfView, MinFOV, DeltaTime, InterpolationSpeed);
+		CustomCameraComponent->SetFieldOfView(SmoothedFOV);
+	}
 }
 
 void APBPlayerCharacter::BeginPlay()
@@ -71,6 +120,16 @@ void APBPlayerCharacter::Tick(float DeltaTime)
 		bDeferJumpStop = false;
 		Super::StopJumping();
 	}
+
+	// Update the mesh rotation based on the control rotation
+	if (GetMesh())
+	{
+		FRotator NewRotation = GetControlRotation();
+		NewRotation.Pitch = 0.0f; // Ignore pitch to prevent unwanted mesh tilting
+		GetMesh()->SetWorldRotation(NewRotation);
+	}
+
+	UpdateCameraFOV(DeltaTime);
 }
 
 void APBPlayerCharacter::ApplyDamageMomentum(float DamageTaken, FDamageEvent const& DamageEvent, APawn* PawnInstigator, AActor* DamageCauser)
@@ -236,27 +295,69 @@ void APBPlayerCharacter::ToggleNoClip()
 }
 
 // Sample for multiplayer games with a Mesh3P with crouch support
-#if 0
-void APBPlayerCharacter::OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust)
+#if 1
+
+float APBPlayerCharacter::GetCrouchedHalfHeight() const
 {
-	Super::OnEndCrouch(HalfHeightAdjust, ScaledHalfHeightAdjust);
+	return (GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() - GetCharacterMovement()->CrouchedHalfHeight) * 0.5f;
+}
+
+bool APBPlayerCharacter::ServerOnStartCrouch_Validate(float HalfHeightAdjust, float ScaledHalfHeightAdjust)
+{
+	return true;
+}
+
+void APBPlayerCharacter::ServerOnStartCrouch_Implementation(float HalfHeightAdjust, float ScaledHalfHeightAdjust)
+{
+	Crouch();
+}
+
+bool APBPlayerCharacter::ServerOnEndCrouch_Validate(float HalfHeightAdjust, float ScaledHalfHeightAdjust)
+{
+	return true;
+}
+
+void APBPlayerCharacter::ServerOnEndCrouch_Implementation(float HalfHeightAdjust, float ScaledHalfHeightAdjust)
+{
+	UnCrouch();
+}
+
+void APBPlayerCharacter::Crouch(bool bClientSimulation)
+{
+	Super::Crouch(bClientSimulation);
+	
+	CustomCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, CrouchedEyeHeight));
+
+	if (GetLocalRole() == ROLE_AutonomousProxy)
+	{
+		ServerOnStartCrouch(GetCrouchedHalfHeight(), GetCrouchedHalfHeight() * MovementPtr->MaxWalkSpeedCrouched);
+	}
+
 	const APBPlayerCharacter* DefaultChar = GetDefault<APBPlayerCharacter>(GetClass());
 	if (Mesh3P && DefaultChar->Mesh3P)
 	{
 		FVector MeshRelativeLocation = Mesh3P->GetRelativeLocation();
-		MeshRelativeLocation.Z = DefaultChar->Mesh3P->GetRelativeLocation().Z - ScaledHalfHeightAdjust;
+		MeshRelativeLocation.Z = DefaultChar->Mesh3P->GetRelativeLocation().Z + GetCrouchedHalfHeight();
 		Mesh3P->SetRelativeLocation(MeshRelativeLocation);
 	}
 }
 
-void APBPlayerCharacter::OnStartCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust)
+void APBPlayerCharacter::UnCrouch(bool bClientSimulation)
 {
-	Super::OnStartCrouch(HalfHeightAdjust, ScaledHalfHeightAdjust);
+	Super::UnCrouch(bClientSimulation);
+
+	CustomCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, BaseEyeHeight));
+
+	if (GetLocalRole() == ROLE_AutonomousProxy)
+	{
+		ServerOnEndCrouch(GetCrouchedHalfHeight(), GetCrouchedHalfHeight() * MovementPtr->MaxWalkSpeedCrouched);
+	}
+
 	const APBPlayerCharacter* DefaultChar = GetDefault<APBPlayerCharacter>(GetClass());
 	if (Mesh3P && DefaultChar->Mesh3P)
 	{
 		FVector MeshRelativeLocation = Mesh3P->GetRelativeLocation();
-		MeshRelativeLocation.Z = DefaultChar->Mesh3P->GetRelativeLocation().Z + ScaledHalfHeightAdjust;
+		MeshRelativeLocation.Z = DefaultChar->Mesh3P->GetRelativeLocation().Z - GetCrouchedHalfHeight();
 		Mesh3P->SetRelativeLocation(MeshRelativeLocation);
 	}
 }

@@ -8,6 +8,8 @@
 
 #include "Runtime/Launch/Resources/Version.h"
 
+#include "Camera/CameraComponent.h"
+
 #include "PBPlayerCharacter.generated.h"
 
 class USoundCue;
@@ -179,5 +181,45 @@ public:
 	UFUNCTION()
 	void LookUp(bool bIsPure, float Rate);
 
+	// Custom crouch function for third person mesh replication
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mesh")
+	USkeletalMeshComponent* Mesh3P;
+
+	float GetCrouchedHalfHeight() const;
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerOnStartCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust);
+	virtual bool ServerOnStartCrouch_Validate(float HalfHeightAdjust, float ScaledHalfHeightAdjust);
+	virtual void ServerOnStartCrouch_Implementation(float HalfHeightAdjust, float ScaledHalfHeightAdjust);
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerOnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust);
+	virtual bool ServerOnEndCrouch_Validate(float HalfHeightAdjust, float ScaledHalfHeightAdjust);
+	virtual void ServerOnEndCrouch_Implementation(float HalfHeightAdjust, float ScaledHalfHeightAdjust);
+
+	
 	virtual bool CanCrouch() const override;
+	virtual void Crouch(bool bClientSimulation = false) override;
+	virtual void UnCrouch(bool bClientSimulation = false) override;
+	
+	// Add the custom camera component
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PB Player|Camera")
+	UCameraComponent* CustomCameraComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
+	float MinFOV;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
+	float MaxFOV;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
+	float InterpolationSpeed;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
+	float speedThreshold;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
+	float speedResponsiveness;
+	
+	void UpdateCameraFOV(float DeltaTime);
 };
