@@ -346,7 +346,7 @@ void APBPlayerCharacter::UnCrouch(bool bClientSimulation)
 {
 	Super::UnCrouch(bClientSimulation);
 
-	CustomCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, BaseEyeHeight));
+	CustomCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, GetDefaultBaseEyeHeight()));
 
 	if (GetLocalRole() == ROLE_AutonomousProxy)
 	{
