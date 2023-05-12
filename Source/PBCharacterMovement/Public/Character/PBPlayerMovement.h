@@ -161,13 +161,7 @@ public:
 	void UpdateCharacterStateAfterMovement(float DeltaSeconds) override;
 
 	void UpdateSurfaceFriction(bool bIsSliding = false);
-	void UpdateCrouching(float DeltaTime, bool bOnlyUnCrouch = false);
-
-	// Overrides for crouch transitions
-	virtual void Crouch(bool bClientSimulation = false) override;
-	virtual void UnCrouch(bool bClientSimulation = false) override;
-	virtual void DoCrouchResize(float TargetTime, float DeltaTime, bool bClientSimulation = false);
-	virtual void DoUnCrouchResize(float TargetTime, float DeltaTime, bool bClientSimulation = false);
+	// void UpdateCrouching(float DeltaTime, bool bOnlyUnCrouch = false);
 	
 	bool MoveUpdatedComponentImpl(const FVector& Delta, const FQuat& NewRotation, bool bSweep, FHitResult* OutHit = nullptr, ETeleportType Teleport = ETeleportType::None) override;
 

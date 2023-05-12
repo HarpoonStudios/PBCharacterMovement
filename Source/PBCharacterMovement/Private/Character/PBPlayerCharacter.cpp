@@ -53,17 +53,6 @@ APBPlayerCharacter::APBPlayerCharacter(const FObjectInitializer& ObjectInitializ
 	CapDamageMomentumZ = 476.25f;
 	CapDamageMomentumZ = 476.25f;
 
-	// Initialize the custom camera component
-	CustomCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("CustomCameraComponent"));
-	CustomCameraComponent->SetupAttachment(GetRootComponent());
-	CustomCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, BaseEyeHeight));
-	CustomCameraComponent->bUsePawnControlRotation = true; // Use the pawn control rotation for the camera component
-	MinFOV = 90.0f;
-	MaxFOV = 110.0f;
-	InterpolationSpeed = 5.0f;
-	speedThreshold = 400.0f;
-	speedResponsiveness = 5.0f;
-
 	// Initialize the third-person mesh component
 	Mesh3P = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Mesh3P"));
 	Mesh3P->SetupAttachment(RootComponent);
@@ -72,34 +61,6 @@ APBPlayerCharacter::APBPlayerCharacter(const FObjectInitializer& ObjectInitializ
 	Mesh3P->bReceivesDecals = false;
 	Mesh3P->CastShadow = true;
 	Mesh3P->SetCollisionProfileName(TEXT("NoCollision"));
-}
-
-void APBPlayerCharacter::UpdateCameraFOV(float DeltaTime)
-{
-	if (!CustomCameraComponent)
-	{
-		return;
-	}
-
-	static float BufferedSpeed = 0.0f;
-	float CurrentSpeed = GetVelocity().Size();
-
-	BufferedSpeed = FMath::FInterpTo(BufferedSpeed, CurrentSpeed, DeltaTime, speedResponsiveness);
-
-	float MaxSpeed = GetCharacterMovement()->MaxWalkSpeed;
-	
-	if (BufferedSpeed > speedThreshold)
-	{
-		float TargetFOV = FMath::Lerp(MinFOV, MaxFOV, (BufferedSpeed - speedThreshold) / (MaxSpeed - speedThreshold));
-		TargetFOV = FMath::Clamp(TargetFOV, MinFOV, MaxFOV); // Clamp the target FOV to the acceptable range
-		float SmoothedFOV = FMath::FInterpTo(CustomCameraComponent->FieldOfView, TargetFOV, DeltaTime, InterpolationSpeed);
-		CustomCameraComponent->SetFieldOfView(SmoothedFOV);
-	}
-	else
-	{
-		float SmoothedFOV = FMath::FInterpTo(CustomCameraComponent->FieldOfView, MinFOV, DeltaTime, InterpolationSpeed);
-		CustomCameraComponent->SetFieldOfView(SmoothedFOV);
-	}
 }
 
 void APBPlayerCharacter::BeginPlay()
@@ -129,7 +90,6 @@ void APBPlayerCharacter::Tick(float DeltaTime)
 		GetMesh()->SetWorldRotation(NewRotation);
 	}
 
-	UpdateCameraFOV(DeltaTime);
 }
 
 void APBPlayerCharacter::ApplyDamageMomentum(float DamageTaken, FDamageEvent const& DamageEvent, APawn* PawnInstigator, AActor* DamageCauser)
@@ -295,7 +255,7 @@ void APBPlayerCharacter::ToggleNoClip()
 }
 
 // Sample for multiplayer games with a Mesh3P with crouch support
-#if 1
+#if 0
 
 float APBPlayerCharacter::GetCrouchedHalfHeight() const
 {
