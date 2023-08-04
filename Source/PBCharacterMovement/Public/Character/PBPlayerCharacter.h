@@ -181,9 +181,9 @@ public:
 	UFUNCTION()
 	void LookUp(bool bIsPure, float Rate);
 
-	// Custom crouch function for third person mesh replication
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mesh")
-	USkeletalMeshComponent* Mesh3P;
+	// // Custom crouch function for third person mesh replication
+	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mesh")
+	// USkeletalMeshComponent* Mesh3P;
 
 	float GetCrouchedHalfHeight() const;
 	

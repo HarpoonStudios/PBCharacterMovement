@@ -53,14 +53,14 @@ APBPlayerCharacter::APBPlayerCharacter(const FObjectInitializer& ObjectInitializ
 	CapDamageMomentumZ = 476.25f;
 	CapDamageMomentumZ = 476.25f;
 
-	// Initialize the third-person mesh component
-	Mesh3P = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Mesh3P"));
-	Mesh3P->SetupAttachment(RootComponent);
-	Mesh3P->SetOwnerNoSee(false);
-	Mesh3P->bOnlyOwnerSee = false;
-	Mesh3P->bReceivesDecals = false;
-	Mesh3P->CastShadow = true;
-	Mesh3P->SetCollisionProfileName(TEXT("NoCollision"));
+	// // Initialize the third-person mesh component
+	// Mesh3P = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Mesh3P"));
+	// Mesh3P->SetupAttachment(RootComponent);
+	// Mesh3P->SetOwnerNoSee(false);
+	// Mesh3P->bOnlyOwnerSee = false;
+	// Mesh3P->bReceivesDecals = false;
+	// Mesh3P->CastShadow = true;
+	// Mesh3P->SetCollisionProfileName(TEXT("NoCollision"));
 }
 
 void APBPlayerCharacter::BeginPlay()
