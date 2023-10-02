@@ -6,10 +6,6 @@
 
 #include "GameFramework/Character.h"
 
-#include "Runtime/Launch/Resources/Version.h"
-
-#include "Camera/CameraComponent.h"
-
 #include "PBPlayerCharacter.generated.h"
 
 class USoundCue;
